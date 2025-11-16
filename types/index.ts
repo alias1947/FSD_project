@@ -4,7 +4,7 @@ export interface User {
   email: string;
   password?: string; // Hashed password (optional for backward compatibility)
   campus: string;
-  batchYear: number; // e.g., 2023, 2024
+  batchYear: number; // e.g., 2023,
   rollNumber: string; // e.g., "057"
   branch: string; // e.g., "CSE", "DSAI", 
   branchAcronym: string; // e.g., "bcs", "bds", "bec"
@@ -105,9 +105,9 @@ export interface Chat {
 
 export interface Review {
   id: string;
-  reviewerId: string; // User who wrote the review
+  reviewerId: string; // User wrote it
   revieweeId: string; // User being reviewed
-  studyJamId?: string; // Optional: review in context of a study jam
+  studyJamId?: string; 
   rating: number; // 1-5 stars
   comment: string;
   helpfulCount: number;
