@@ -1,74 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStudyJams, createStudyJam, updateStudyJam, deleteStudyJam, getStudyJamById, getUserByEmail, createUser } from '@/lib/data';
+import {
+  getStudyJams,
+  createStudyJam,
+  updateStudyJam,
+  deleteStudyJam,
+  getStudyJamById,
+  getUserByEmail,
+  createUser
+} from '@/lib/data';
 import { getCurrentUserFromRequest } from '@/lib/auth';
 import { StudyJam } from '@/types';
 
-export async function GET(request: NextRequest) {
+/* -------------------- GET ALL STUDY JAMS -------------------- */
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
+
     const campus = searchParams.get('campus');
     const subject = searchParams.get('subject');
     const status = searchParams.get('status');
 
-    let jams = getStudyJams();
+    let jamsList = getStudyJams();
 
-    // Filter by campus
+    // Filter by campus (case insensitive)
     if (campus) {
-      jams = jams.filter(jam => jam.campus.toLowerCase().includes(campus.toLowerCase()));
+      jamsList = jamsList.filter(j =>
+        j.campus.toLowerCase().includes(campus.toLowerCase())
+      );
     }
 
     // Filter by subject
     if (subject) {
-      jams = jams.filter(jam => jam.subject.toLowerCase().includes(subject.toLowerCase()));
+      jamsList = jamsList.filter(j =>
+        j.subject.toLowerCase().includes(subject.toLowerCase())
+      );
     }
 
-    // Filter by status
+    // Filter by status (open/closed)
     if (status) {
-      jams = jams.filter(jam => jam.status === status);
+      jamsList = jamsList.filter(j => j.status === status);
     }
 
-    // Sort by creation date (newest first)
-    jams.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Sort newest → oldest
+    jamsList.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-    return NextResponse.json(jams);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch study jams' }, { status: 500 });
+    return NextResponse.json(jamsList);
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'Unable to fetch study jams' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: NextRequest) {
+/* -------------------- CREATE A STUDY JAM -------------------- */
+export async function POST(req: NextRequest) {
   try {
-    const user = getCurrentUserFromRequest(request);
+    const user = getCurrentUserFromRequest(req);
+
     if (!user || !user.profileComplete) {
-      return NextResponse.json({ error: 'Please login and complete your profile first' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Login and complete your profile before creating a study jam.' },
+        { status: 401 }
+      );
     }
 
-    const body = await request.json();
-    const { title, description, subject, campus, location, date, time, maxParticipants } = body;
-
-    if (!title || !description || !subject || !campus || !location || !date || !time || !maxParticipants) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    // Check weekly limit (5 jams per week)
-    const jams = getStudyJams();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    const userJamsThisWeek = jams.filter(jam => {
-      if (jam.createdBy !== user.id) return false;
-      const jamDate = new Date(jam.createdAt);
-      return jamDate >= oneWeekAgo;
-    });
-
-    if (userJamsThisWeek.length >= 5) {
-      return NextResponse.json({ 
-        error: 'You have reached the weekly limit of 5 study jams. Please wait until next week.' 
-      }, { status: 400 });
-    }
-
-    const jam: StudyJam = {
-      id: Date.now().toString(),
+    const data = await req.json();
+    const {
       title,
       description,
       subject,
@@ -76,20 +77,72 @@ export async function POST(request: NextRequest) {
       location,
       date,
       time,
-      maxParticipants: parseInt(maxParticipants),
+      maxParticipants
+    } = data;
+
+    // Check missing fields
+    if (
+      !title ||
+      !description ||
+      !subject ||
+      !campus ||
+      !location ||
+      !date ||
+      !time ||
+      !maxParticipants
+    ) {
+      return NextResponse.json(
+        { error: 'All fields are required.' },
+        { status: 400 }
+      );
+    }
+
+    // Weekly jam creation limit check (max 5/week)
+    const allJams = getStudyJams();
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+
+    const jamsCreatedRecently = allJams.filter(j => {
+      if (j.createdBy !== user.id) return false;
+      return new Date(j.createdAt) >= weekStart;
+    });
+
+    if (jamsCreatedRecently.length >= 5) {
+      return NextResponse.json(
+        {
+          error:
+            'Weekly limit reached (5 study jams). You can create more next week.'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create new jam object
+    const newJam: StudyJam = {
+      id: String(Date.now()),
+      title,
+      description,
+      subject,
+      campus,
+      location,
+      date,
+      time,
+      maxParticipants: Number(maxParticipants),
       currentParticipants: 1,
       createdBy: user.id,
       createdAt: new Date().toISOString(),
       participants: [user.id],
       requests: [],
-      status: 'open',
+      status: 'open'
     };
 
-    createStudyJam(jam);
+    createStudyJam(newJam);
 
-    return NextResponse.json(jam, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create study jam' }, { status: 500 });
+    return NextResponse.json(newJam, { status: 201 });
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'Could not create study jam' },
+      { status: 500 }
+    );
   }
 }
-
