@@ -3,47 +3,67 @@ import { getUserByEmail, updateUser, createUser } from '@/lib/data';
 import { User } from '@/types';
 import { hashPassword } from '@/lib/password';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password, batchYear, rollNumber, branch, branchAcronym, strongSubjects, weakSubjects } = body;
+    const payload = await req.json();
 
-    // Validate required fields
+    const {
+      email,
+      password,
+      batchYear,
+      rollNumber,
+      branch,
+      branchAcronym,
+      strongSubjects,
+      weakSubjects
+    } = payload;
+
+    // Basic input checks
     if (!email || !batchYear || !rollNumber || !branch || !branchAcronym) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Required fields are missing' },
+        { status: 400 }
+      );
     }
 
     if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'Password is required and must be at least 6 characters long' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters' },
+        { status: 400 }
+      );
     }
 
-    if (!strongSubjects || !Array.isArray(strongSubjects) || strongSubjects.length === 0) {
-      return NextResponse.json({ error: 'At least one strong subject is required' }, { status: 400 });
+    if (!Array.isArray(strongSubjects) || strongSubjects.length < 1) {
+      return NextResponse.json(
+        { error: 'Provide at least one strong subject' },
+        { status: 400 }
+      );
     }
 
-    if (!weakSubjects || !Array.isArray(weakSubjects) || weakSubjects.length === 0) {
-      return NextResponse.json({ error: 'At least one weak subject is required' }, { status: 400 });
+    if (!Array.isArray(weakSubjects) || weakSubjects.length < 1) {
+      return NextResponse.json(
+        { error: 'Provide at least one weak subject' },
+        { status: 400 }
+      );
     }
 
-    // Hash password
-    const hashedPassword = hashPassword(password);
+    // Password hashing
+    const hashed = hashPassword(password);
 
-    // Check if user exists
-    let user = getUserByEmail(email);
+    // Determine campus based on email domain
+    const domain = email.split('@')[1] ?? '';
+    const campus =
+      domain.includes('iiitdwd') ? 'IIIT Dharwad' : 'IIIT Dharwad'; // Default remains
 
-    // Extract campus from email domain (e.g., iiitdwd.ac.in -> IIIT Dharwad)
-    const domain = email.split('@')[1] || '';
-    let campus = 'IIIT Dharwad'; // Default campus
-    if (domain.includes('iiitdwd')) {
-      campus = 'IIIT Dharwad';
-    }
+    // Check for existing user record
+    let existingUser = getUserByEmail(email);
 
-    if (user) {
-      // Update existing user (preserve existing name if set)
-      updateUser(user.id, {
+    // If user exists → update the record
+    if (existingUser) {
+      updateUser(existingUser.id, {
         email,
-        password: hashedPassword,
-        batchYear: parseInt(batchYear),
+        password: hashed,
+        batchYear: Number(batchYear),
         rollNumber,
         branch,
         branchAcronym,
@@ -51,20 +71,19 @@ export async function POST(request: NextRequest) {
         weakSubjects,
         campus,
         profileComplete: true,
-        name: user.name || email.split('@')[0], // Preserve existing name or use roll number
+        name: existingUser.name ?? email.split('@')[0],
       });
-      
-      // Get updated user
-      user = getUserByEmail(email);
+
+      existingUser = getUserByEmail(email); // reload updated user
     } else {
-      // Create new user
-      const newUser: User = {
-        id: Date.now().toString(),
+      // Create a fresh user entry
+      const freshUser: User = {
+        id: `${Date.now()}`,
         name: email.split('@')[0],
         email,
-        password: hashedPassword,
+        password: hashed,
         campus,
-        batchYear: parseInt(batchYear),
+        batchYear: Number(batchYear),
         rollNumber,
         branch,
         branchAcronym,
@@ -73,31 +92,37 @@ export async function POST(request: NextRequest) {
         profileComplete: true,
         createdAt: new Date().toISOString(),
       };
-      
-      createUser(newUser);
-      user = newUser;
+
+      createUser(freshUser);
+      existingUser = freshUser;
     }
 
-    if (!user) {
-      return NextResponse.json({ error: 'Failed to create/update user' }, { status: 500 });
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: 'Could not save user data' },
+        { status: 500 }
+      );
     }
 
-    // Set user ID cookie
-    const response = NextResponse.json({ 
-      user,
-      message: 'Profile created successfully' 
+    // Prepare response with cookie
+    const res = NextResponse.json({
+      user: existingUser,
+      message: 'Profile saved successfully',
     });
-    
-    response.cookies.set('userId', user.id, {
+
+    res.cookies.set('userId', existingUser.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
+      maxAge: 365 * 24 * 60 * 60,
     });
 
-    return response;
-  } catch (error) {
-    console.error('Error creating profile:', error);
-    return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
+    return res;
+  } catch (err) {
+    console.error('Profile creation error:', err);
+    return NextResponse.json(
+      { error: 'Unexpected error while creating profile' },
+      { status: 500 }
+    );
   }
 }
