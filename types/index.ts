@@ -12,6 +12,7 @@ export interface User {
   weakSubjects: string[]; // Subjects they need help
   profileComplete: boolean;
   createdAt: string;
+
   // Enhanced profile fields
   bio?: string;
   profilePicture?: string; // URL to pfp
@@ -63,7 +64,7 @@ export interface StudyJam {
   createdBy: string;
   createdAt: string;
   participants: string[];
-  requests: string[]; // User IDs who want to join
+  requests: string[]; // User IDs for those who want to join
   status: 'open' | 'full' | 'completed';
 }
 
