@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStudyJamById, updateStudyJam } from '@/lib/data';
+import { getStudyJamById, updateStudyJam, createNotification, getUserById } from '@/lib/data';
 import { getCurrentUserFromRequest } from '@/lib/auth';
 
 export async function POST(
@@ -34,6 +34,31 @@ export async function POST(
       currentParticipants: newCurrentParticipants,
       status: newStatus,
     });
+
+    // Create reminder notification for the user
+    const jamDate = new Date(jam.date + 'T' + jam.time);
+    const now = new Date();
+    const hoursUntil = (jamDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+    // Only create reminder if the study jam is in the future
+    if (hoursUntil > 0) {
+      const reminderDate = new Date(jamDate);
+      reminderDate.setHours(reminderDate.getHours() - 24); // Remind 24 hours before
+      
+      // Create reminder notification
+      if (reminderDate > now) {
+        createNotification({
+          id: `reminder-${params.id}-${user.id}-${Date.now()}`,
+          userId: user.id,
+          type: 'reminder',
+          title: `Study Jam Reminder: ${jam.title}`,
+          message: `Your study session "${jam.title}" is coming up on ${jamDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${jam.time}`,
+          link: `/?highlight=${params.id}`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
 
     const updatedJam = getStudyJamById(params.id);
     return NextResponse.json(updatedJam);

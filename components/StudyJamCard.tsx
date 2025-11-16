@@ -1,7 +1,7 @@
 'use client';
 
 import { StudyJam } from '@/types';
-import { FiUsers, FiMapPin, FiCalendar, FiClock, FiBookOpen } from 'react-icons/fi';
+import { FiUsers, FiMapPin, FiCalendar, FiClock, FiBookOpen, FiMessageCircle } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -14,11 +14,17 @@ interface StudyJamCardProps {
 export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [currentJam, setCurrentJam] = useState<StudyJam>(jam);
   const router = useRouter();
 
   useEffect(() => {
     fetchUser();
   }, []);
+
+  // Update local jam state when prop changes
+  useEffect(() => {
+    setCurrentJam(jam);
+  }, [jam]);
 
   const fetchUser = async () => {
     try {
@@ -45,8 +51,13 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
       });
 
       if (response.ok) {
+        // Fetch updated jam data immediately
+        const updatedResponse = await fetch(`/api/study-jams/${jam.id}`);
+        if (updatedResponse.ok) {
+          const updatedJam = await updatedResponse.json();
+          setCurrentJam(updatedJam);
+        }
         onJoin?.();
-        router.refresh();
       } else {
         const error = await response.json();
         if (error.error === 'Study jam is full') {
@@ -77,8 +88,14 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
       });
 
       if (response.ok) {
+        // Fetch updated jam data immediately
+        const updatedResponse = await fetch(`/api/study-jams/${jam.id}`);
+        if (updatedResponse.ok) {
+          const updatedJam = await updatedResponse.json();
+          setCurrentJam(updatedJam);
+        }
         alert('Request sent! The creator will be notified.');
-        router.refresh();
+        onJoin?.(); // Refresh parent list
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to send request');
@@ -99,8 +116,13 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
       });
 
       if (response.ok) {
+        // Fetch updated jam data immediately
+        const updatedResponse = await fetch(`/api/study-jams/${jam.id}`);
+        if (updatedResponse.ok) {
+          const updatedJam = await updatedResponse.json();
+          setCurrentJam(updatedJam);
+        }
         onLeave?.();
-        router.refresh();
       } else {
         const error = await response.json();
         alert(error.error || 'Failed to leave study jam');
@@ -113,9 +135,31 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
     }
   };
 
-  const isParticipant = user && jam.participants.includes(user.id);
-  const isCreator = user && jam.createdBy === user.id;
-  const hasRequested = user && jam.requests && jam.requests.includes(user.id);
+  const handleChat = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      // Get or create chat for this study jam
+      const response = await fetch(`/api/chats?studyJamId=${currentJam.id}`);
+      if (response.ok) {
+        const chat = await response.json();
+        router.push(`/chat/${chat.id}`);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to access chat');
+      }
+    } catch (error) {
+      console.error('Failed to access chat:', error);
+      alert('Failed to access chat');
+    }
+  };
+
+  const isParticipant = user && currentJam.participants.includes(user.id);
+  const isCreator = user && currentJam.createdBy === user.id;
+  const hasRequested = user && currentJam.requests && currentJam.requests.includes(user.id);
 
   const statusColors = {
     open: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
@@ -124,7 +168,7 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
   };
 
   // Progress bar for participants
-  const participantProgress = (jam.currentParticipants / jam.maxParticipants) * 100;
+  const participantProgress = (currentJam.currentParticipants / currentJam.maxParticipants) * 100;
 
   return (
     <div className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 p-6 sm:p-7 border border-gray-100 dark:border-gray-700 hover:border-primary-200/50 dark:hover:border-primary-700/50 overflow-hidden">
@@ -135,21 +179,21 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
         {/* Header with status badge */}
         <div className="flex justify-between items-start mb-5">
           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-300 line-clamp-2 flex-1 mr-3 leading-tight">
-            {jam.title}
+            {currentJam.title}
           </h3>
-          <span className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 ${statusColors[jam.status]}`}>
-            {jam.status.toUpperCase()}
+          <span className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 ${statusColors[currentJam.status]}`}>
+            {currentJam.status.toUpperCase()}
           </span>
         </div>
 
         {/* Description */}
-        <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed line-clamp-2">{jam.description}</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed line-clamp-2">{currentJam.description}</p>
 
         {/* Subject Badge */}
         <div className="mb-5">
           <span className="inline-flex items-center px-3.5 py-1.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-indigo-900/30 text-primary-700 dark:text-primary-300 border border-primary-100 dark:border-primary-800">
             <FiBookOpen className="h-4 w-4 mr-1.5" />
-            {jam.subject}
+            {currentJam.subject}
           </span>
         </div>
 
@@ -159,19 +203,19 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mr-3">
               <FiMapPin className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </div>
-            <span className="truncate font-medium">{jam.campus} • {jam.location}</span>
+            <span className="truncate font-medium">{currentJam.campus} • {currentJam.location}</span>
           </div>
           <div className="flex items-center text-gray-700 dark:text-gray-300 text-sm">
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mr-3">
               <FiCalendar className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </div>
-            <span className="font-medium">{new Date(jam.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+            <span className="font-medium">{new Date(currentJam.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           </div>
           <div className="flex items-center text-gray-700 dark:text-gray-300 text-sm">
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mr-3">
               <FiClock className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </div>
-            <span className="font-medium">{jam.time}</span>
+            <span className="font-medium">{currentJam.time}</span>
           </div>
           
           {/* Participants with progress bar */}
@@ -181,7 +225,7 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
                 <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mr-3">
                   <FiUsers className="h-4 w-4 text-primary-600 dark:text-primary-400" />
                 </div>
-                <span className="font-semibold">{jam.currentParticipants} / {jam.maxParticipants}</span>
+                <span className="font-semibold">{currentJam.currentParticipants} / {currentJam.maxParticipants}</span>
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
                 {Math.round(participantProgress)}% full
@@ -202,20 +246,27 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Action Buttons */}
         <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
-          {isCreator ? (
-            <div className="flex items-center justify-center text-sm text-primary-600 dark:text-primary-400 font-semibold">
-              <span className="px-4 py-2.5 bg-primary-50 dark:bg-primary-900/30 rounded-xl border border-primary-100 dark:border-primary-800">You created this</span>
+          {(isCreator || isParticipant) ? (
+            <div className="flex gap-3">
+              <button
+                onClick={handleChat}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 text-white rounded-xl hover:from-primary-700 hover:to-indigo-700 transition-all duration-300 font-semibold text-sm shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 flex items-center justify-center space-x-2"
+              >
+                <FiMessageCircle className="h-4 w-4" />
+                <span>Chat</span>
+              </button>
+              {!isCreator && (
+                <button
+                  onClick={handleLeave}
+                  disabled={loading}
+                  className="px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 transition-all duration-300 font-semibold text-sm border border-red-100 dark:border-red-800 hover:border-red-200 dark:hover:border-red-700 hover:shadow-md"
+                >
+                  {loading ? 'Leaving...' : 'Leave'}
+                </button>
+              )}
             </div>
-          ) : isParticipant ? (
-            <button
-              onClick={handleLeave}
-              disabled={loading}
-              className="w-full px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 transition-all duration-300 font-semibold text-sm border border-red-100 dark:border-red-800 hover:border-red-200 dark:hover:border-red-700 hover:shadow-md"
-            >
-              {loading ? 'Leaving...' : 'Leave Hive'}
-            </button>
           ) : hasRequested ? (
             <button
               disabled
@@ -223,7 +274,7 @@ export default function StudyJamCard({ jam, onJoin, onLeave }: StudyJamCardProps
             >
               Request Pending
             </button>
-          ) : jam.status === 'full' ? (
+          ) : currentJam.status === 'full' ? (
             <button
               onClick={handleRequest}
               disabled={loading}

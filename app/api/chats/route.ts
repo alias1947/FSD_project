@@ -6,6 +6,7 @@ import {
   getChatByStudyJamId, 
   getDirectChat, 
   createChat, 
+  updateChat,
   getStudyJamById,
   getUserById 
 } from '@/lib/data';
@@ -44,16 +45,37 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
 
+      // Get all current participants (creator + participants)
+      const allParticipants = [
+        studyJam.createdBy,
+        ...studyJam.participants.filter(id => id !== studyJam.createdBy)
+      ];
+
       if (!chat) {
         // Create group chat
         chat = {
           id: `group-${studyJamId}`,
           type: 'group',
           studyJamId,
-          participants: [studyJam.createdBy, ...studyJam.participants],
+          participants: allParticipants,
           createdAt: new Date().toISOString(),
         };
         createChat(chat);
+      } else {
+        // Update chat participants to match current study jam participants
+        const chatParticipantsSet = new Set(chat.participants);
+        const currentParticipantsSet = new Set(allParticipants);
+        
+        // Check if participants have changed
+        const participantsChanged = 
+          chat.participants.length !== allParticipants.length ||
+          !allParticipants.every(id => chatParticipantsSet.has(id)) ||
+          !chat.participants.every(id => currentParticipantsSet.has(id));
+        
+        if (participantsChanged) {
+          updateChat(chat.id, { participants: allParticipants });
+          chat.participants = allParticipants;
+        }
       }
 
       return NextResponse.json(chat);

@@ -316,7 +316,11 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
               {filteredJams.map((jam, index) => (
                 <div key={jam.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <StudyJamCard jam={jam} />
+                  <StudyJamCard 
+                    jam={jam} 
+                    onJoin={() => fetchStudyJams()} 
+                    onLeave={() => fetchStudyJams()} 
+                  />
                 </div>
               ))}
             </div>

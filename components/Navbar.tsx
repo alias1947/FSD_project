@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FiBook, FiUser, FiLogIn, FiPlus, FiMenu, FiX, FiSun, FiMoon, FiBell, FiMessageCircle } from 'react-icons/fi';
+import { FiBook, FiUser, FiLogIn, FiPlus, FiMenu, FiX, FiSun, FiMoon, FiBell, FiMessageCircle, FiCalendar } from 'react-icons/fi';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Navbar() {
@@ -74,6 +74,13 @@ export default function Navbar() {
               className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Browse
+            </Link>
+            <Link
+              href="/calendar"
+              className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center space-x-1"
+            >
+              <FiCalendar className="h-4 w-4" />
+              <span>Calendar</span>
             </Link>
             <Link
               data-tour="create"
@@ -197,6 +204,14 @@ export default function Navbar() {
               className="block px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-all duration-300"
             >
               Browse
+            </Link>
+            <Link
+              href="/calendar"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl text-sm font-medium transition-all duration-300 flex items-center space-x-2"
+            >
+              <FiCalendar className="h-4 w-4" />
+              <span>Calendar</span>
             </Link>
             <Link
               href="/create"

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { FiUser, FiMail, FiBook, FiLogOut, FiCalendar, FiMapPin, FiUsers, FiCheckCircle, FiXCircle, FiArrowLeft, FiEdit2, FiClock, FiTarget, FiStar, FiTrendingUp, FiAward } from 'react-icons/fi';
 import { User, StudyJam, StudyGoal, Review } from '@/types';
 import StudyJamCard from '@/components/StudyJamCard';
+import ActivityHeatmap from '@/components/ActivityHeatmap';
+import UpcomingSessions from '@/components/UpcomingSessions';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -271,6 +273,16 @@ export default function ProfilePage() {
               </div>
             );
           })()}
+
+          {/* Activity Heatmap */}
+          <div className="mb-4 sm:mb-6">
+            <ActivityHeatmap studyJams={studyJams} userId={user.id} />
+          </div>
+
+          {/* Upcoming Sessions */}
+          <div className="mb-4 sm:mb-6">
+            <UpcomingSessions studyJams={studyJams} userId={user.id} />
+          </div>
 
           {/* User Information Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
