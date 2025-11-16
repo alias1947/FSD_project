@@ -6,15 +6,15 @@ export interface User {
   campus: string;
   batchYear: number; // e.g., 2023, 2024
   rollNumber: string; // e.g., "057"
-  branch: string; // e.g., "CSE", "DSAI", "ECE"
+  branch: string; // e.g., "CSE", "DSAI", 
   branchAcronym: string; // e.g., "bcs", "bds", "bec"
   strongSubjects: string[]; // Subjects they're good at
-  weakSubjects: string[]; // Subjects they need help with
+  weakSubjects: string[]; // Subjects they need help
   profileComplete: boolean;
   createdAt: string;
   // Enhanced profile fields
   bio?: string;
-  profilePicture?: string; // URL to profile picture
+  profilePicture?: string; // URL to pfp
   studyGoals?: StudyGoal[];
   achievements?: Achievement[];
   totalStudyHours?: number;
@@ -63,7 +63,7 @@ export interface StudyJam {
   createdBy: string;
   createdAt: string;
   participants: string[];
-  requests: string[]; // User IDs who requested to join
+  requests: string[]; // User IDs who want to join
   status: 'open' | 'full' | 'completed';
 }
 
