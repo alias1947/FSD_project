@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
         createdBy: '1',
         createdAt: new Date().toISOString(),
         participants: ['1', '2'],
+        requests: [],
         status: 'open',
       },
       {
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
         createdBy: '1',
         createdAt: new Date().toISOString(),
         participants: ['1', '2', '3'],
+        requests: [],
         status: 'open',
       },
       {
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
         createdBy: '3',
         createdAt: new Date().toISOString(),
         participants: ['3'],
+        requests: [],
         status: 'open',
       },
       {
@@ -135,6 +138,7 @@ export async function POST(request: NextRequest) {
         createdBy: '2',
         createdAt: new Date().toISOString(),
         participants: ['2'],
+        requests: [],
         status: 'full',
       },
     ];
