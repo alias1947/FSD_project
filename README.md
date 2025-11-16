@@ -62,7 +62,7 @@ npm run dev
 
 ```
 ├── app/
-│   ├── api/              # API routes
+│   ├── api/              # API 
 │   │   ├── auth/         # Authentication endpoints
 │   │   └── study-jams/   # Study jam CRUD operations
 │   ├── create/           # Create study jam page
